@@ -69,8 +69,8 @@ mt5Timeframe              = H1
 
 # LSTM Parameters
 numCandlesForTraining     = 10000
-window_size               = 100  # Number of rows to use as input (input length)
-nFuture                   = 1   # Number of future predictions   (output length)
+window_size               = 100   # Number of rows to use as input (input length)
+nFuture                   = 10    # Number of future predictions   (output length)
 nFirstLSTMNodes           = 100   # Number of Nodes in the first LSTM Layer
 nSecondLSTMNodes          = 100   # Number of Nodes in the first LSTM Layer
 
