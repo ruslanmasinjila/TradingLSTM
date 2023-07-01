@@ -75,27 +75,15 @@ def getRates(symbol, mt5Timeframe,offset, numCandles):
 # In[96]:
 
 
-numCandles     = 10000
-offset         = 100
-symbol = "EURUSD"
-mt5Timeframe = H1
-rates_frame =  getRates(symbol, mt5Timeframe, offset, numCandles)
-
-
-# In[97]:
-
-
-rates_frame = rates_frame[["open","high","low","close","tick_volume"]]
+numCandlesForTraining     = 10000
+offset                    = 100
+symbol                    = "EURUSD"
+mt5Timeframe              = H1
+rates_frame               =  getRates(symbol, mt5Timeframe, offset, numCandlesForTraining)
 
 
 # In[98]:
 
-
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
-from keras.layers import LSTM, Dense
 
 # Load the dataframe
 # Assuming you have already loaded the dataframe named 'rates_frame'
@@ -108,12 +96,16 @@ scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(close_data)
 
 # Prepare the data for LSTM
-window_size = 100  # Number of rows to use as input
+window_size      = 100  # Number of rows to use as input
+nFuture          = 10   # Number of future predictions
+nFirstLSTMNodes  = 50   # Number of Nodes in the first LSTM Layer
+nSecondLSTMNodes = 50   # Number of Nodes in the first LSTM Layer
+
 X, y = [], []
-for i in range(len(scaled_data) - window_size - 10):  # Modified to account for 10 output values
+for i in range(len(scaled_data) - window_size - nFuture):
     window = scaled_data[i:(i + window_size), 0]
     X.append(window)
-    y.append(scaled_data[(i + window_size):(i + window_size + 10), 0])  # Modified to include 10 output values
+    y.append(scaled_data[(i + window_size):(i + window_size + nFuture), 0]) 
 X, y = np.array(X), np.array(y)
 
 # Split the data into training and testing sets
@@ -127,9 +119,9 @@ X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 
 # Build the LSTM model
 model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(window_size, 1)))
-model.add(LSTM(units=50))
-model.add(Dense(units=10))  # Modified to output 10 values
+model.add(LSTM(units=nFirstLSTMNodes, return_sequences=True, input_shape=(window_size, 1)))
+model.add(LSTM(units=nSecondLSTMNodes))
+model.add(Dense(units=nFuture))
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Train the model
@@ -148,23 +140,17 @@ print('Test Loss:', test_loss)
 # In[107]:
 
 
-numCandles     = 100
-offset         = 1
-symbol = "EURUSD"
-mt5Timeframe = H1
-rates_frame =  getRates(symbol, mt5Timeframe, offset, numCandles)
-
-
-# In[108]:
-
-
-# Assuming you have loaded the new 100 rows of data into a dataframe called 'new_data_frame'
+numCandlesForPrediction     = 100
+offset                      = 1
+symbol                      = "EURUSD"
+mt5Timeframe                = H1
+rates_frame                 =  getRates(symbol, mt5Timeframe, offset, numCandlesForPrediction)
 
 # Extract the 'close' column from the new data
-new_close_data = rates_frame['close'].values.reshape(-1, 1)
+pricesForPrediction = rates_frame['close'].values.reshape(-1, 1)
 
 # Normalize the new data using the same scaler used during training
-scaled_new_data = scaler.transform(new_close_data)
+scaled_new_data = scaler.transform(pricesForPrediction)
 
 # Prepare the input sequence for prediction
 new_input_sequence = scaled_new_data[-window_size:, 0]  # Take the last 100 rows as input
@@ -189,10 +175,4 @@ print('Predicted Close Values:', predicted_close_values)
 
 
 predicted_close_values
-
-
-# In[ ]:
-
-
-
 
