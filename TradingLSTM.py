@@ -26,6 +26,7 @@ pd.set_option('display.width', 1500)
 if not mt5.initialize():
     print("initialize() FAILED, ERROR CODE =",mt5.last_error())
     quit()
+##########################################################################################
 
 
 # In[94]:
@@ -57,6 +58,19 @@ M1   = mt5.TIMEFRAME_M1
 symbols = None
 with open('symbols.txt') as f:
     symbols = [line.rstrip('\n') for line in f]
+    
+
+# Instrument Parameters
+symbol                    = "EURUSD"
+OHLCType                  = "close"
+mt5Timeframe              = H1
+
+# LSTM Parameters
+numCandlesForTraining     = 10000
+window_size               = 100  # Number of rows to use as input (input length)
+nFuture                   = 10   # Number of future predictions   (output length)
+nFirstLSTMNodes           = 50   # Number of Nodes in the first LSTM Layer
+nSecondLSTMNodes          = 50   # Number of Nodes in the first LSTM Layer
 
 ##########################################################################################
 
@@ -75,31 +89,15 @@ def getRates(symbol, mt5Timeframe,offset, numCandles):
 # In[96]:
 
 
-numCandlesForTraining     = 10000
-offset                    = 100
-symbol                    = "EURUSD"
-mt5Timeframe              = H1
-rates_frame               =  getRates(symbol, mt5Timeframe, offset, numCandlesForTraining)
+trainingRatesFrame =  getRates(symbol, mt5Timeframe, window_size, numCandlesForTraining)
 
 
-# In[98]:
-
-
-# Load the dataframe
-# Assuming you have already loaded the dataframe named 'rates_frame'
-
-# Extract the 'close' column
-close_data = rates_frame['close'].values.reshape(-1, 1)
+# Extract the OHLCType column ("open","high","low", or "close")
+pricesForTraining  = trainingRatesFrame[OHLCType].values.reshape(-1, 1)
 
 # Normalize the data
 scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_data = scaler.fit_transform(close_data)
-
-# Prepare the data for LSTM
-window_size      = 100  # Number of rows to use as input
-nFuture          = 10   # Number of future predictions
-nFirstLSTMNodes  = 50   # Number of Nodes in the first LSTM Layer
-nSecondLSTMNodes = 50   # Number of Nodes in the first LSTM Layer
+scaled_data = scaler.fit_transform(pricesForTraining)
 
 X, y = [], []
 for i in range(len(scaled_data) - window_size - nFuture):
@@ -135,19 +133,16 @@ test_loss = model.evaluate(X_test, y_test, verbose=0)
 print(model.summary())
 print('Train Loss:', train_loss)
 print('Test Loss:', test_loss)
+##########################################################################################
 
 
 # In[107]:
 
 
-numCandlesForPrediction     = 100
-offset                      = 1
-symbol                      = "EURUSD"
-mt5Timeframe                = H1
-rates_frame                 =  getRates(symbol, mt5Timeframe, offset, numCandlesForPrediction)
+predictionRatesFrame =  getRates(symbol, mt5Timeframe, 1, window_size)
 
-# Extract the 'close' column from the new data
-pricesForPrediction = rates_frame['close'].values.reshape(-1, 1)
+# Extract the OHLCType column ("open","high","low", or "close")
+pricesForPrediction = predictionRatesFrame[OHLCType].values.reshape(-1, 1)
 
 # Normalize the new data using the same scaler used during training
 scaled_new_data = scaler.transform(pricesForPrediction)
@@ -168,7 +163,8 @@ predicted_sequence = scaler.inverse_transform(predicted_sequence)
 predicted_close_values = predicted_sequence[0]
 
 # Print the predicted close values
-print('Predicted Close Values:', predicted_close_values)
+print(f'Predicted {OHLCType} Values:', predicted_close_values)
+##########################################################################################
 
 
 # In[101]:
