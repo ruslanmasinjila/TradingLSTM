@@ -14,6 +14,8 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras import regularizers
 
 # NUMBER OF COLUMNS TO BE DISPLAYED
 pd.set_option('display.max_columns', 500)
@@ -68,9 +70,9 @@ mt5Timeframe              = H1
 # LSTM Parameters
 numCandlesForTraining     = 10000
 window_size               = 100  # Number of rows to use as input (input length)
-nFuture                   = 10   # Number of future predictions   (output length)
-nFirstLSTMNodes           = 50   # Number of Nodes in the first LSTM Layer
-nSecondLSTMNodes          = 50   # Number of Nodes in the first LSTM Layer
+nFuture                   = 1   # Number of future predictions   (output length)
+nFirstLSTMNodes           = 100   # Number of Nodes in the first LSTM Layer
+nSecondLSTMNodes          = 100   # Number of Nodes in the first LSTM Layer
 
 ##########################################################################################
 
@@ -118,8 +120,11 @@ X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 # Build the LSTM model
 model = Sequential()
 model.add(LSTM(units=nFirstLSTMNodes, return_sequences=True, input_shape=(window_size, 1)))
+model.add(Dropout(0.2))  # Apply dropout regularization between the LSTM layers
 model.add(LSTM(units=nSecondLSTMNodes))
+model.add(Dropout(0.2))  # Apply dropout regularization between the second LSTM and Dense layers
 model.add(Dense(units=nFuture))
+model.add(Dense(units=nFuture, kernel_regularizer=regularizers.l2(0.01)))  # Apply L2 regularization to the Dense layer
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Train the model
